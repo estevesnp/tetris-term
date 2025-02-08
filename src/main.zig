@@ -22,7 +22,7 @@ pub fn main() !void {
     while (true) {
         try term.printPos();
         const char = try term.readChar();
-        if (char == comptime ctrl('q')) break;
+        if (char == 'q') break;
 
         try term.writeChar("{c}", .{char});
     }

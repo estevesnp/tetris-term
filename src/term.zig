@@ -58,7 +58,16 @@ pub const State = struct {
 };
 
 pub fn readChar() !u8 {
-    return try stdin.readByte();
+    while (true) {
+        const char = try stdin.readByte();
+        if (std.ascii.isControl(char)) continue;
+        if (char != '\x1b') return char;
+
+        while (true) {
+            const c = try stdin.readByte();
+            if (std.ascii.isAlphabetic(c) or c == '~') break;
+        }
+    }
 }
 
 pub fn writeChar(comptime fmt: []const u8, args: anytype) !void {
