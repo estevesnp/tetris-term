@@ -2,13 +2,14 @@ const std = @import("std");
 
 const assert = std.debug.assert;
 
-const stdout = std.io.getStdOut().writer();
+pub const stdout = std.io.getStdOut().writer();
 const stdout_handle = std.io.getStdOut().handle;
 
 const stdin = std.io.getStdIn().reader();
 const stdin_handle = std.io.getStdIn().handle;
 
-const ESCAPE = '\x1B';
+pub const ESCAPE = "\x1B[";
+pub const MOVE_LEFT = ESCAPE ++ "D";
 
 pub const State = struct {
     original: std.posix.termios,
@@ -91,13 +92,6 @@ pub fn showCursor() !void {
     try stdout.writeAll("\x1b[?25h");
 }
 
-pub fn moveCursor(rows: usize, cols: usize) !void {
-    assert(rows > 0);
-    assert(cols > 0);
-
-    try stdout.print("\x1b[{d};{d}H", .{ rows, cols });
-}
-
 pub fn storePos() !void {
     try stdout.writeAll("\x1b[s");
 }
@@ -139,10 +133,45 @@ pub fn getCursorPos() !struct { row: usize, col: usize } {
     return .{ .row = row, .col = col };
 }
 
+pub fn moveCursor(writer: anytype, rows: usize, cols: usize) !void {
+    assert(rows > 0);
+    assert(cols > 0);
+
+    try writer.print(ESCAPE ++ "{d};{d}H", .{ rows, cols });
+}
+
+pub fn drawRectangle(
+    writer: anytype,
+    start_row: usize,
+    start_col: usize,
+    rows: usize,
+    cols: usize,
+) !void {
+    try moveCursor(writer, start_row, start_col);
+
+    try writer.writeAll("┌");
+    try writer.writeBytesNTimes("─", cols - 2);
+    try writer.writeAll("┐\n" ++ MOVE_LEFT);
+
+    try writer.writeBytesNTimes("│\n" ++ MOVE_LEFT, rows - 2);
+
+    try moveCursor(writer, start_row + 1, start_col);
+
+    try writer.writeBytesNTimes("│\n" ++ MOVE_LEFT, rows - 2);
+
+    try writer.writeAll("└");
+    try writer.writeBytesNTimes("─", cols - 2);
+    try writer.writeAll("┘");
+}
+
+pub fn moveLeft(writer: anytype) !void {
+    try writer.writeAll(ESCAPE ++ "D");
+}
+
 pub fn printPos() !void {
     const cur_pos = try getCursorPos();
     try storePos();
-    try moveCursor(1, 1);
+    try moveCursor(stdout, 1, 1);
     try stdout.print("{d};{d}    ", .{ cur_pos.row, cur_pos.col });
     try restorePos();
 }

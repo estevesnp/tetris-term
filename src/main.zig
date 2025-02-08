@@ -16,15 +16,14 @@ pub fn main() !void {
 
     const allocator = gpa.allocator();
 
-    var game = try Game.init(allocator, 10, 10);
+    var game = try Game.init(allocator, term_state.rows, term_state.cols);
     defer game.deinit();
 
+    try game.drawBoard();
+
     while (true) {
-        try term.printPos();
         const char = try term.readChar();
         if (char == 'q') break;
-
-        try term.writeChar("{c}", .{char});
     }
 }
 
@@ -41,11 +40,11 @@ fn setup(term_state: *term.State) !void {
     try term_state.uncook();
     try term.clearScreen();
     try term.hideCursor();
-    try term.moveCursor(term_state.rows / 2, term_state.cols / 2);
+    try term.moveCursor(term.stdout, term_state.rows / 2, term_state.cols / 2);
 }
 
 fn restore(term_state: *term.State) !void {
     try term_state.restore();
-    try term.moveCursor(1, 1);
+    try term.moveCursor(term.stdout, 1, 1);
     try term.showCursor();
 }
