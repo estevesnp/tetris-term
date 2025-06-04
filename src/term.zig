@@ -1,8 +1,22 @@
 const std = @import("std");
 const posix = std.posix;
 
+const assert = std.debug.assert;
+
 const stdout_handle = std.io.getStdOut().handle;
 const stdin_handle = std.io.getStdIn().handle;
+
+pub const ESCAPE = "\x1B[";
+
+pub const CLEAR_SCREEN = ESCAPE ++ "2J";
+
+pub const MOVE_LEFT = ESCAPE ++ "D";
+
+pub const RESET_BG = ESCAPE ++ "0m";
+pub const WHITE_BG = ESCAPE ++ "47m";
+
+pub const HIDE_CURSOR = ESCAPE ++ "?25l";
+pub const SHOW_CURSOR = ESCAPE ++ "?25h";
 
 pub const State = struct {
     original: posix.termios,
@@ -40,7 +54,7 @@ pub const State = struct {
         self.termios.cflag.CSIZE = .CS8;
 
         self.termios.cc[@intFromEnum(posix.V.TIME)] = 0;
-        self.termios.cc[@intFromEnum(posix.V.MIN)] = 1;
+        self.termios.cc[@intFromEnum(posix.V.MIN)] = 0;
 
         try posix.tcsetattr(stdin_handle, .FLUSH, self.termios);
     }
@@ -66,6 +80,13 @@ fn getTermSize() !struct { rows: usize, cols: usize } {
         },
         else => error.IoctlError,
     };
+}
+
+pub fn moveCursor(writer: anytype, rows: usize, cols: usize) !void {
+    assert(rows > 0);
+    assert(cols > 0);
+
+    try writer.print(ESCAPE ++ "{d};{d}H", .{ rows, cols });
 }
 
 test "ref all decls" {
